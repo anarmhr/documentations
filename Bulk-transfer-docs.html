@@ -1,0 +1,196 @@
+
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>API 2.0</title>
+  <link rel="stylesheet" href="https://stackedit.io/style.css" />
+</head>
+
+<body class="stackedit">
+  <div class="stackedit__html"><h1 id="bulk-transfer-api">Bulk Transfer API</h1>
+<p>Bulk Transfer API is the RESTful web service designed to create and check the status of bulk transfers in the system. A bulk transfer is a collection of individual transfers comprising of transaction details, such as a name of the receiver, a PIN code, and a transfer amount. The API aims to carry out create and view operations on transfer information. The operations are implemented for both bulk and individual transfer data (except creation for the latter). The API functions via HTTP request methods specified in the designated endpoints.</p>
+<h2 id="authorization">Authorization</h2>
+<p>The API requires an authorization token to successfully issue requests. The token is provided to the user after registering in the system. It needs to be placed in the header authorization section of a request. The sample token below can be utilized for testing purposes:</p>
+<code>sv0dc285lgedu7ta763f94lmen</code>
+<p><em>Example using curl:</em></p>
+<pre><code>curl https://sb-bulk-transfer.mpay.az/api/v1/bulk-transfer/&lt;bulkId&gt;/status -H "authorization: &lt;provided_token&gt;"
+</code></pre>
+<p><em>Example using Postman</em>:<br>
+<img src="https://i.ibb.co/5BydfmD/bulk-transfer-postman-auth.png" alt=""><br>
+Any request lacking a token or containing an invalid one will fail to execute.</p>
+<h2 id="model">Model</h2>
+<p>The system incorporates two models: individual transfer and bulk transfer. An individual transfer is a single instance of a transfer whereas a transfer bulk is a collection of individual transfers. The endpoints also correspond to the transfer model and can thereby be divided into two groups based on the model they are related to.<br>
+<img src="https://i.ibb.co/ySh39dG/bulk-transfer-postman-model.png" alt=""></p>
+<h2 id="format">Format</h2>
+<p>The API accepts request bodies typed in JSON and returns JSON-formatted responses. The success response for create operation is as below:</p>
+<pre><code>{
+    "status": "ok",
+    "message": "processed successfully"
+}
+</code></pre>
+<p>The phone number field in requests requires a pattern that <strong>optionally</strong> starts with a “+” character and <strong>mandatorily</strong> follows 12 numerical characters: i.e., “+xxxxxxxxxxxx” and “xxxxxxxxxxxx” patterns are acceptable where “x” represents a digit. The amount field does not accept values with more than two digits after the decimal point. Furthermore, it can also accept string values.</p>
+<h2 id="endpoints">Endpoints</h2>
+<h3 id="bulk-transfer">Bulk Transfer</h3>
+<h4 id="create">Create</h4>
+<p><em>URL Structure:</em></p>
+<pre><code>https://sb-bulk-transfer.mpay.az/api/v1/bulk-transfer/&lt;bulkId&gt;
+</code></pre>
+<p><em>Method:</em> POST</p>
+<p><em>Path Variable:</em></p>
+<ul>
+<li><strong>bulkId</strong> - external ID of the created bulk transfer</li>
+</ul>
+<p><em>Request Body:</em></p>
+<pre><code>{
+    "transfers" : []
+}
+</code></pre>
+<p><em>Request Parameter:</em></p>
+<ul>
+<li><strong>transfers</strong> : array - a collection of individual transfers</li>
+<li><strong>name</strong> : string - name of the transfer receiver</li>
+<li><strong>surname</strong> : string - surname of the transfer receiver</li>
+<li><strong>pin</strong> : string - PIN (personal identification number) of the transfer receiver</li>
+<li><strong>phoneNumber</strong> : string - phone number of the  transfer receiver</li>
+<li><strong>amount</strong> : numeric - transfer amount<br>
+<em>Example Request:</em></li>
+</ul>
+<pre><code>{
+    "transfers":[
+        {
+            "name" : "Edy",
+            "surname": "Parks",
+            "pin" : "9999",
+            "phoneNumber" : "+771407844212",
+            "amount" : 100.45          
+        },
+
+        {
+            "name" : "Sally",
+            "surname": "Graves",
+            "pin" : "8888",
+            "phoneNumber" : "+479536608712",
+            "amount" : 200          
+        }
+    ]
+}
+</code></pre>
+<blockquote>
+<p>In a given bulk, individual transfers need to differ in phone number. Only the first transfer will be recorded if multiple individual transfers are provided with the same phone number. Transfers with the same phone numbers placed in different bulks (i.e., different bulk IDs) are okay. Moreover, a bulk transfer cannot be created if another bulk by the same ID already exists in the system.</p>
+</blockquote>
+<h4 id="read">Read</h4>
+<p><em>URL Structure:</em></p>
+<pre><code>https://sb-bulk-transfer.mpay.az/api/v1/bulk-transfer/&lt;bulkId&gt;/status
+</code></pre>
+<p><em>Method:</em> GET</p>
+<p><em>Example Request:</em></p>
+<pre><code>curl https://sb-bulk-transfer.mpay.az/api/v1/bulk-transfer/2/status -H "authorization: &lt;provided_token&gt;"
+</code></pre>
+<p><em>Success Response:</em></p>
+<pre><code>{
+    "status": "ok",
+    "message": "processed successfully",
+    "bulk": {
+	    "externalId": "2",
+	    "status": "IN_PROCESS",
+	    "transfers": [
+		    {
+			    "phoneNumber": "+771407844212",
+			    "amount": 100.00,
+			    "status": "IN_PROCESS"
+		    },
+		    {
+			    "phoneNumber": "+479536608712",
+			    "amount": 200.00,
+			    "status": "IN_PROCESS"
+		    }
+		]
+	}
+}
+</code></pre>
+<h3 id="individual-transfer">Individual Transfer</h3>
+<h4 id="read-1">Read</h4>
+<p><em>URL Structure:</em></p>
+<pre><code>https://sb-bulk-transfer.mpay.az/api/v1/bulk-transfer/&lt;bulkId&gt;/&lt;phoneNumber&gt;/status
+</code></pre>
+<p><em>Method:</em> GET</p>
+<p><em>Path Variables:</em></p>
+<ul>
+<li><strong>bulkId</strong> - external ID of the bulk. Used to identify the bulk to which the individual transfers belong.</li>
+<li><strong>phoneNumber</strong> - phone number of the individual transfer. Used to identify the individual transfer in a bulk. Each transfer in a bulk possesses unique phone number information.</li>
+</ul>
+<p><em>Example Request:</em></p>
+<pre><code>curl https://sb-bulk-transfer.mpay.az/api/v1/bulk-transfer/1/+771407844132/status -H "authorization: &lt;provided_token&gt;"
+</code></pre>
+<p><em>Success Response:</em></p>
+<pre><code> {
+    "status": "ok",
+    "message": "processed successfully",
+    "transfer": {
+	    "phoneNumber": "+771407844132",
+	    "amount": 20.00,
+	    "status": "IN_PROCESS"
+    }
+}
+</code></pre>
+<h3 id="bulk-user-coins">Bulk User Coins</h3>
+<p>The API is able to display the coin information of a bulk user.</p>
+<p><em>URL Structure:</em></p>
+<pre><code>https://sb-bulk-transfer.mpay.az/api/v1/bulk-user/coins
+</code></pre>
+<p><em>Method:</em> GET</p>
+<p><em>Example Response:</em></p>
+<pre><code>{
+"status": "ok",
+"message": "processed successfully",
+"coins": [
+    {
+        "serial": "105265747578",
+        "name": "Test AZN coin",
+        "amount": 22820.2599,
+        "availableAmount": 22820.2599,
+        "futureAmount": 0.0000,
+        "heldAmount": 0.0000,
+        "creditLimit": 0.0000,
+        "totalAmount": 22820.2599,
+        "issuer": {
+            "id": "8db38ed4-fd2f-4d2e-bd7c-48a9bd45de76",
+            "currency": "AZN"
+            }
+        }
+    ]
+ }
+</code></pre>
+<p><em>Response Fields:</em></p>
+<ul>
+<li><strong>serial</strong> : string - unique serial identifier of the coin</li>
+<li><strong>name</strong> : string - name identifier of the coin</li>
+<li><strong>amount</strong> : numeric - the amount of money the bulk user has in MPAY Wallet system</li>
+<li><strong>total amount</strong> : numeric - the total of amount field values</li>
+</ul>
+<p>Moreover, a health check to determine whether the system is functioning can be made using the API:</p>
+<p><em>URL structure:</em></p>
+<pre><code>https://sb-bulk-transfer.mpay.az/health
+</code></pre>
+<p><em>Method:</em> GET</p>
+<h2 id="error-responses">Error Responses</h2>
+<p><strong>400</strong> :</p>
+<ul>
+<li><em>Bulk Transfer Already Exists</em> - returned during creating a bulk when another bulk with the same id already exists in the system.</li>
+<li><em>Phone Number Incorrect</em> - displayed when the entered phone number does not follow the specified format.</li>
+<li><em>Numeric Value Out of Bounds</em> - denotes that the amount field is given a value with more than two digits after the decimal point.</li>
+</ul>
+<p><strong>401</strong> :  <em>Authorization Failed</em> - occurs when no valid token is provided in the request header.</p>
+<p><strong>404</strong> :</p>
+<ul>
+<li><em>Bulk Transfer Not Found</em> - occurs when the external bulk id  does not match any bulk in the system.</li>
+<li><em>Individual Transfer Not Found</em> - shows that the individual transfer is not found. It is issued when the external bulk id or the phone number does not match any data in the system.</li>
+</ul>
+</div>
+</body>
+
+</html>
+
